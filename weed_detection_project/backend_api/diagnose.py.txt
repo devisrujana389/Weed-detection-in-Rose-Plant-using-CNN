@@ -1,0 +1,38 @@
+from tensorflow.keras.models import load_model
+from PIL import Image
+import numpy as np
+import os
+
+model = load_model("../models/weed_detector.h5")
+
+def predict_raw(image_path):
+    img = Image.open(image_path).convert("RGB").resize((128, 128))
+    arr = np.array(img).astype("float32")   # raw 0-255 values, no manual scaling
+    arr = np.expand_dims(arr, axis=0)
+    pred = model.predict(arr, verbose=0)[0][0]
+    return pred
+
+# Automatically grab one real image from each folder to test
+rose_dir = "../data/raw/rose"
+weed_dir = "../data/raw/weed"
+
+rose_files = [f for f in os.listdir(rose_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+weed_files = [f for f in os.listdir(weed_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+
+print("\n=== TESTING 5 REAL ROSE IMAGES ===")
+for f in rose_files[:5]:
+    p = predict_raw(os.path.join(rose_dir, f))
+    print(f"{f}: weed_probability = {p:.4f}")
+
+print("\n=== TESTING 5 REAL WEED IMAGES ===")
+for f in weed_files[:5]:
+    p = predict_raw(os.path.join(weed_dir, f))
+    print(f"{f}: weed_probability = {p:.4f}")
+
+print("\n=== SOLID BLACK IMAGE (raw 0-255 scale) ===")
+black = np.zeros((1, 128, 128, 3), dtype="float32")
+print("weed_probability =", model.predict(black, verbose=0)[0][0])
+
+print("\n=== SOLID WHITE IMAGE (raw 0-255 scale) ===")
+white = np.full((1, 128, 128, 3), 255, dtype="float32")
+print("weed_probability =", model.predict(white, verbose=0)[0][0])
